@@ -1,15 +1,18 @@
 import csv
-import json
-import pprint
 import requests
 import pandas as pd
-from openpyxl import load_workbook
 
 from cookies_and_headers import cookies, headers
 
 
 def get_data(custom_status_id, month='October'):
-    """ """
+    """ Отправляем запросы на получение данных в формат json,
+    через авторизированный кабинет для вытягивания интересующей информации.
+    Первая часть - запрос на общий статус заказов,
+    Вторая часть - запрос на почтовые данные
+    """
+
+    # создание файла с заголовками
     with open(f'orders_list_{month}.csv', 'w', encoding='utf-8', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(
@@ -26,6 +29,8 @@ def get_data(custom_status_id, month='October'):
                 'deliveryCost'
             )
         )
+
+    # Отправляем get запрос для получения пагинации
     response = requests.get(
         f'https://my.prom.ua/remote/order_api/orders?custom_status_id={custom_status_id}&'
         f'company_client_id=null&page=1&per_page=100&new_cabinet=true&search_term',
@@ -35,6 +40,7 @@ def get_data(custom_status_id, month='October'):
 
     pagination = response.get('pagination').get('num_pages')
 
+    # Проходим циклом по всем страницам получаем json с данными
     for page in range(1, pagination + 1):
         response = requests.get(
             f'https://my.prom.ua/remote/order_api/orders?custom_status_id=127894&company_client_id=null&page={page}&'
@@ -43,8 +49,8 @@ def get_data(custom_status_id, month='October'):
             headers=headers,
         ).json()
 
+        # Забираем нужные данные
         orders = response.get('orders')
-
         for order in orders:
             id = order.get('id')
             order_type = order.get('type')
@@ -55,6 +61,8 @@ def get_data(custom_status_id, month='October'):
             labels = order.get('labels')
             comments = ', '.join([label.get('name').replace(' ', '') for label in labels])
             added_items = order.get('added_items')
+
+            # Отправляем новый запрос, что бы получить недостающие данные
 
             params = {
                 'order_id': f'{id}',
@@ -72,6 +80,7 @@ def get_data(custom_status_id, month='October'):
 
             ttn = response.get('data').get('intDocNumber')
 
+            # Если заказ отправлен новой почтой
             if ttn != None:
 
                 try:
@@ -90,6 +99,7 @@ def get_data(custom_status_id, month='October'):
                     deliveryCost = ''
 
             else:
+                # Если заказ отправлен укр почтой
                 params = {
                     'order_id': f'{id}',
                     'delivery_option_id': '10119216',
@@ -122,12 +132,13 @@ def get_data(custom_status_id, month='October'):
                         deliveryCost = ''
 
                 else:
+                    # Если другой способ доставки
                     ttn = ''
                     price = ''
                     deliveryCost = ''
 
             if len(added_items) > 1:
-
+                # Если в заказе больше одной позиции берем общую цену заказа и ставим в первую позицию
                 for item in added_items[:1]:
                     sku = item.get('sku')
                     quantity = item.get('quantity')
@@ -147,6 +158,7 @@ def get_data(custom_status_id, month='October'):
                                  deliveryCost
                             )
                         )
+                # Остальные позици проставляем с ценой и стоиимостью доставки в ноль, что бы не дублировать
                 for item in added_items[1:]:
                     sku = item.get('sku')
                     quantity = item.get('quantity')
@@ -169,6 +181,7 @@ def get_data(custom_status_id, month='October'):
                             )
                         )
             else:
+                # Если в заказе одна позиция, делаем по стандарту
                 for item in added_items:
                     sku = item.get('sku')
                     quantity = item.get('quantity')
@@ -189,6 +202,7 @@ def get_data(custom_status_id, month='October'):
                             )
                         )
 
+    # Читаем записанный csv файл и конвертируем его в xlsx
     read_file = pd.read_csv(f'orders_list_{month}.csv')
 
     read_file.to_excel(f'order_list_{month}.xlsx', index=None, header=True)

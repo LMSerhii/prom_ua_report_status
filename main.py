@@ -19,9 +19,11 @@ def get_data(custom_status_id, month='October'):
                 'client_full_name',
                 'payment_option_name',
                 'quantity',
-                'comments',
                 'sku',
-                'totalPriceRate'
+                'comments',
+                'ttn',
+                'price',
+                'deliveryCost'
             )
         )
     response = requests.get(
@@ -30,9 +32,6 @@ def get_data(custom_status_id, month='October'):
         cookies=cookies,
         headers=headers,
     ).json()
-
-    # with open('orders_list.json', 'w', encoding='utf-8') as file:
-    #     json.dump(response, file, indent=4, ensure_ascii=False)
 
     pagination = response.get('pagination').get('num_pages')
 
@@ -43,9 +42,6 @@ def get_data(custom_status_id, month='October'):
             cookies=cookies,
             headers=headers,
         ).json()
-
-        # with open(f'orders_list_{page}.json', 'w', encoding='utf-8') as file:
-        #     json.dump(response, file, indent=4, ensure_ascii=False)
 
         orders = response.get('orders')
 
@@ -74,10 +70,24 @@ def get_data(custom_status_id, month='October'):
                 headers=headers,
             ).json()
 
-            price = response.get('data').get('intDocNumber')
+            ttn = response.get('data').get('intDocNumber')
 
-            if price != None:
-                print(f'{id}: {price}')
+            if ttn != None:
+
+                try:
+                    ttn = response.get('data').get('intDocNumber')
+                except Exception as e:
+                    ttn = ''
+
+                try:
+                    price = int(response.get('data').get('packageCost'))
+                except Exception as e:
+                    price = ''
+
+                try:
+                    deliveryCost = int(response.get('data').get('deliveryCost'))
+                except Exception as e:
+                    deliveryCost = ''
 
             else:
                 params = {
@@ -95,77 +105,97 @@ def get_data(custom_status_id, month='October'):
                 price = response.get('data').get('declarationId')
 
                 if price != None:
-                    print(f'{id}: {price}')
+
+                    try:
+                        ttn = response.get('data').get('declarationId')
+                    except Exception as e:
+                        ttn = ''
+
+                    try:
+                        price = int(response.get('data').get('declaredCost'))
+                    except Exception as e:
+                        price = ''
+
+                    try:
+                        deliveryCost = int(response.get('data').get('deliveryCost'))
+                    except Exception as e:
+                        deliveryCost = ''
+
                 else:
-                    print(f'{id}: ')
+                    ttn = ''
+                    price = ''
+                    deliveryCost = ''
 
-            for item in added_items:
-                sku = item.get('sku')
-                quantity = item.get('quantity')
-                totalPriceRate = item.get('totalPriceRate')
+            if len(added_items) > 1:
 
-                with open(f'orders_list_{month}.csv', 'a', encoding='utf-8', newline='') as file:
-                    writer = csv.writer(file)
-                    writer.writerow(
-                        (
-                            id,
-                            order_type,
-                            client_full_name,
-                            payment_option_name,
-                            quantity,
-                            comments,
-                            sku,
-                            totalPriceRate
+                for item in added_items[:1]:
+                    sku = item.get('sku')
+                    quantity = item.get('quantity')
+                    with open(f'orders_list_{month}.csv', 'a', encoding='utf-8', newline='') as file:
+                        writer = csv.writer(file)
+                        writer.writerow(
+                            (
+                                 id,
+                                 order_type,
+                                 client_full_name,
+                                 payment_option_name,
+                                 quantity,
+                                 sku,
+                                 comments,
+                                 ttn,
+                                 price,
+                                 deliveryCost
+                            )
                         )
-                    )
+                for item in added_items[1:]:
+                    sku = item.get('sku')
+                    quantity = item.get('quantity')
+                    price = 0
+                    deliveryCost = 0
+                    with open(f'orders_list_{month}.csv', 'a', encoding='utf-8', newline='') as file:
+                        writer = csv.writer(file)
+                        writer.writerow(
+                            (
+                                 id,
+                                 order_type,
+                                 client_full_name,
+                                 payment_option_name,
+                                 quantity,
+                                 sku,
+                                 comments,
+                                 ttn,
+                                 price,
+                                 deliveryCost
+                            )
+                        )
+            else:
+                for item in added_items:
+                    sku = item.get('sku')
+                    quantity = item.get('quantity')
+                    with open(f'orders_list_{month}.csv', 'a', encoding='utf-8', newline='') as file:
+                        writer = csv.writer(file)
+                        writer.writerow(
+                            (
+                                 id,
+                                 order_type,
+                                 client_full_name,
+                                 payment_option_name,
+                                 quantity,
+                                 sku,
+                                 comments,
+                                 ttn,
+                                 price,
+                                 deliveryCost
+                            )
+                        )
 
-                read_file = pd.read_csv(f'orders_list_{month}.csv')
+    read_file = pd.read_csv(f'orders_list_{month}.csv')
 
-                read_file.to_excel(f'order_list_{month}.xlsx', index=None, header=True)
-
-
-def collect_data():
-    """  """
-    params = {
-        'order_id': '212914787',
-        'delivery_option_id': '10119216',
-    }
-
-    response = requests.get(
-        'https://my.prom.ua/remote/delivery/ukrposhta/init_data_order',
-        params=params,
-        cookies=cookies,
-        headers=headers,
-    ).json()
-
-    ttn = response.get('data').get('declarationId')
-
-    try:
-        price = int(response.get('data').get('declaredCost'))
-    except Exception:
-        price = ''
-
-    try:
-        post_pay = int(response.get('data').get('postPayDeliveryPrice'))
-    except Exception:
-        post_pay = ''
-
-    try:
-        deliveryCost = int(response.get('data').get('deliveryCost'))
-    except Exception:
-        deliveryCost = ''
-
-
-
-
-    print(f'{ttn} - {price} - {post_pay} - {deliveryCost}')
-
-
+    read_file.to_excel(f'order_list_{month}.xlsx', index=None, header=True)
 
 
 def main():
-    # get_data(custom_status_id=127894)
-    collect_data()
+    get_data(custom_status_id=127894)
 
 
 if __name__ == '__main__':

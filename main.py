@@ -3,6 +3,7 @@ import requests
 import pandas as pd
 
 from cookies_and_headers import cookies, headers
+from get_status import read_excel
 
 
 def get_data(custom_status_id, month='October'):
@@ -13,7 +14,7 @@ def get_data(custom_status_id, month='October'):
     """
 
     # создание файла с заголовками
-    with open(f'orders_list_{month}.csv', 'w', encoding='utf-8', newline='') as file:
+    with open(f'data/orders_list_{month}.csv', 'w', encoding='utf-8', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(
             (
@@ -142,7 +143,7 @@ def get_data(custom_status_id, month='October'):
                 for item in added_items[:1]:
                     sku = item.get('sku')
                     quantity = item.get('quantity')
-                    with open(f'orders_list_{month}.csv', 'a', encoding='utf-8', newline='') as file:
+                    with open(f'data/orders_list_{month}.csv', 'a', encoding='utf-8', newline='') as file:
                         writer = csv.writer(file)
                         writer.writerow(
                             (
@@ -164,7 +165,7 @@ def get_data(custom_status_id, month='October'):
                     quantity = item.get('quantity')
                     price = 0
                     deliveryCost = 0
-                    with open(f'orders_list_{month}.csv', 'a', encoding='utf-8', newline='') as file:
+                    with open(f'data/orders_list_{month}.csv', 'a', encoding='utf-8', newline='') as file:
                         writer = csv.writer(file)
                         writer.writerow(
                             (
@@ -185,7 +186,7 @@ def get_data(custom_status_id, month='October'):
                 for item in added_items:
                     sku = item.get('sku')
                     quantity = item.get('quantity')
-                    with open(f'orders_list_{month}.csv', 'a', encoding='utf-8', newline='') as file:
+                    with open(f'data/orders_list_{month}.csv', 'a', encoding='utf-8', newline='') as file:
                         writer = csv.writer(file)
                         writer.writerow(
                             (
@@ -203,9 +204,9 @@ def get_data(custom_status_id, month='October'):
                         )
 
     # Читаем записанный csv файл и конвертируем его в xlsx
-    read_file = pd.read_csv(f'orders_list_{month}.csv')
+    read_file = pd.read_csv(f'data/orders_list_{month}.csv')
 
-    read_file.to_excel(f'order_list_{month}.xlsx', index=None, header=True)
+    read_file.to_excel(f'data/order_list_{month}.xlsx', index=None, header=True)
 
 
 def main():

@@ -2,6 +2,8 @@ import csv
 import requests
 import pandas as pd
 
+from tqdm import tqdm
+
 from cookies_and_headers import cookies, headers
 from get_status import read_excel
 
@@ -42,9 +44,10 @@ def get_data(custom_status_id, month='October'):
     pagination = response.get('pagination').get('num_pages')
 
     # Проходим циклом по всем страницам получаем json с данными
-    for page in range(1, pagination + 1):
+
+    for page in tqdm(range(1, pagination + 1)):
         response = requests.get(
-            f'https://my.prom.ua/remote/order_api/orders?custom_status_id=127894&company_client_id=null&page={page}&'
+            f'https://my.prom.ua/remote/order_api/orders?custom_status_id={custom_status_id}&company_client_id=null&page={page}&'
             f'per_page=100&new_cabinet=true&search_term',
             cookies=cookies,
             headers=headers,
@@ -82,7 +85,7 @@ def get_data(custom_status_id, month='October'):
             ttn = response.get('data').get('intDocNumber')
 
             # Если заказ отправлен новой почтой
-            if ttn != None:
+            if ttn is not None:
 
                 try:
                     ttn = response.get('data').get('intDocNumber')
@@ -115,7 +118,7 @@ def get_data(custom_status_id, month='October'):
 
                 price = response.get('data').get('declarationId')
 
-                if price != None:
+                if price is not None:
 
                     try:
                         ttn = response.get('data').get('declarationId')
@@ -210,7 +213,7 @@ def get_data(custom_status_id, month='October'):
 
 
 def main():
-    get_data(custom_status_id=127894)
+    get_data(custom_status_id=128816, month='November')
 
 
 if __name__ == '__main__':

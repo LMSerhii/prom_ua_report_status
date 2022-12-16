@@ -37,7 +37,6 @@ def read_excel(path_file):
                     except Exception:
                         continue
         else:
-            # print("empty field")
             status = ''
         sheet[f'K{i}'] = status
 
